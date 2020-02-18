@@ -1,0 +1,49 @@
+## 
+library(effsize)
+#calculate the effect size for each miRNA between each group and the control in the second and third trimester
+##pre A vs pre C all
+effect_sizes<-data.frame(rep(NA,153))
+for (i in 1:153){c<-cohen.d(pre_all_A[,i],pre_all_C[,i],hedges.correction=TRUE)
+effect_sizes[i,1]<-c$estimate}
+hist(effect_sizes[,3])
+summary(effect_sizes[,5])
+##pre A vs pre C females 
+for (i in 1:153){c<-cohen.d(pre_A_female[,i],pre_C_female[,i],hedges.correction=TRUE)
+effect_sizes[i,2]<-c$estimate}
+##pre A vs pre C males
+for (i in 1:153){c<-cohen.d(pre_A_male[,i],pre_C_male[,i],hedges.correction=TRUE)
+effect_sizes[i,3]<-c$estimate}
+##pre B vs pre C all
+for (i in 1:153){c<-cohen.d(pre_all_B[,i],pre_all_C[,i],hedges.correction=TRUE)
+effect_sizes[i,4]<-c$estimate}
+
+##pre B vs pre C females
+for (i in 1:153){c<-cohen.d(pre_B_female[,i],pre_C_female[,i],hedges.correction=TRUE)
+effect_sizes[i,5]<-c$estimate}
+##pre B vs pre C males
+for (i in 1:153){c<-cohen.d(pre_B_male[,i],pre_C_male[,i],hedges.correction=TRUE)
+effect_sizes[i,6]<-c$estimate}
+##repeat for the third trimester groups
+
+#to calculate the median bootstrap effect size and 95% confidence intervals for each miRNA
+##doing bootstrap in which I resample group A pre and Group C then calculate effect size , then get the median of the 
+med_bootstrap<-list()
+q2_5_bootstrap<-list()
+q_97_5_bootstrap<-list()
+for (ii in 1:153){c_effect<-list()
+for ( i in 1:2000){a<-sample(pre_all_A[,ii],nrow(pre_all_A), replace = TRUE)
+b<-sample(pre_all_C[,ii],nrow(pre_all_C), replace = TRUE) 
+c<-cohen.d(a,b,hedges.correction=TRUE)
+c_effect[i]<-c$estimate
+c_effect<-unlist(c_effect)}
+med_bootstrap[ii]<-median(c_effect)
+q2_5_bootstrap[ii]<-quantile(c_effect,probs=0.025)
+q_97_5_bootstrap[ii]<-quantile(c_effect,probs=0.975)
+print(ii)}
+med_bootstrap<-unlist(med_bootstrap)
+q2_5_bootstrap<-unlist(q2_5_bootstrap)
+q_97_5_bootstrap<-unlist(q_97_5_bootstrap)
+effect_size_bootstrap_pre_A_all<-cbind(med_bootstrap,q2_5_bootstrap,q_97_5_bootstrap)
+rownames(effect_size_bootstrap_pre_A_all)<-colnames(pre_all_A)
+write.csv(effect_size_bootstrap_pre_A_all,file="bootstrap_effect_size_pre_A_all.csv")
+# do the same for male and female groups ,in second and third trimesters
