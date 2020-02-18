@@ -1,1 +1,38 @@
-
+#start with the data frame merged_all from (Correlation Analyses Code)
+anova_pre<-merged_all[which(merged_all$Measure=="Measure1"),c(6,32:184)]
+anova_pre_female<-merged_all[which(merged_all$Measure=="Measure1"&merged_all$CSex==2),c(6,32:184)]
+anova_pre_male<-merged_all[which(merged_all$Measure=="Measure1"&merged_all$CSex==1),c(6,32:184)]
+ukmir_pre_A<-anova_pre[which(anova_pre$Group=="A"),]
+ukmir_pre_B<-anova_pre[which(anova_pre$Group=="B"),]
+ukmir_pre_C<-anova_pre[which(anova_pre$Group=="C"),]
+ukmir_pre_A_F<-anova_pre_female[which(anova_pre_female$Group=="A"),]
+ukmir_pre_B_F<-anova_pre_female[which(anova_pre_female$Group=="B"),]
+ukmir_pre_C_F<-anova_pre_female[which(anova_pre_female$Group=="C"),]
+ukmir_pre_A_M<-anova_pre_male[which(anova_pre_male$Group=="A"),]
+ukmir_pre_B_M<-anova_pre_male[which(anova_pre_male$Group=="B"),]
+ukmir_pre_C_M<-anova_pre_male[which(anova_pre_male$Group=="C"),]
+#now we have dataframe for each group containing the miRNA expression data , and the group assignment 
+#we will run ANOVA so that each group is resampled , then ANOVA is ran on each miRNA in the resulting resampeld groups and p-value is reported
+##all pre
+plist_boot_sig_pre<-list()
+for(i in 1:2000) {
+  row_C_6_A <- sample(row(ukmir_pre_A),nrow(ukmir_pre_A), replace = TRUE)
+  c_6_A<-ukmir_pre_A[row_C_6_A,]
+  row_C_6_B <- sample(row(ukmir_pre_B),nrow(ukmir_pre_B), replace = TRUE)
+  c_6_B<-ukmir_pre_B[row_C_6_B,]
+  row_C_6_C <- sample(row(ukmir_pre_C),nrow(ukmir_pre_C), replace = TRUE)
+  c_6_C<-ukmir_pre_C[row_C_6_C,]
+  c_bindframe<-rbind(c_6_A,c_6_B,c_6_C)
+  plist<-list()
+  for(ii in 2:154){anova1<-aov(c_bindframe[,ii]~Group,data=c_bindframe)
+  panova<-summary(anova1)[[1]][["Pr(>F)"]][1]
+  plist<-list(plist,panova)}
+  plist_boot_sig_pre<-rbind(plist_boot_sig_pre,unlist(plist))
+  print(i)
+  
+  
+}
+plist_boot_sig_pre<-as.data.frame(plist_boot_sig_pre)
+colnames(plist_boot_sig_pre)<-colnames(ukmir_pre_C)[2:154]
+write.csv(plist_boot_sig_pre,file="anova ukraine pre all p values.csv")
+#repeat the same for male and female segregated data sets , and for the "post" groups
