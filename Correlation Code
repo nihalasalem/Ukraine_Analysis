@@ -1,1 +1,96 @@
+library(corrplot)
+# mat : is a matrix of data
+# ... : further arguments to pass to the native R cor.test function
+#to generate p-values matrices
+cor.mtest <- function(mat, ...) {
+  mat <- as.matrix(mat)
+  n <- ncol(mat)
+  p.mat<- matrix(NA, n, n)
+  diag(p.mat) <- 0
+  for (i in 1:(n - 1)) {
+    for (j in (i + 1):n) {
+      tmp <- cor.test(mat[, i], mat[, j], ...)
+      p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
+    }
+  }
+  colnames(p.mat) <- rownames(p.mat) <- colnames(mat)
+  p.mat
+}#read the maternal variables file assembeled by Alan on April 10,2019
+maternal_variables_20190410 <- read.csv("C:/Users/nihal/Dropbox/Nihal_Salem/Ukraine analysis/April_2019_analysis/maternal_variables_20190410.csv")
+#read the row centered normalized file with mirna expressed in more than 80% of samples
+miRNA_row_centered_normalization_gt80 <- read.csv("C:/Users/nihal/Dropbox/Nihal_Salem/Ukraine analysis/April_2019_analysis/miRNA_row_centered_normalization_gt80.csv")
+#rename subject id to matid
+colnames(miRNA_row_centered_normalization_gt80)[1]<-"MatID"
+#merge the two files
+merged_all<-merge(maternal_variables_20190410,miRNA_row_centered_normalization_gt80,by="MatID")
+#separate into pre and post
+pre_all<-merged_all[which(merged_all$Measure=="Measure1"),32:184]
+post_all<-merged_all[which(merged_all$Measure=="Measure2"|merged_all$Measure=="Measure3"),32:184]
+pre_A<-merged_all[which(merged_all$Measure=="Measure1"&merged_all$Group=="A"),32:184]
+pre_B<-merged_all[which(merged_all$Measure=="Measure1"&merged_all$Group=="B"),32:184]
+pre_C<-merged_all[which(merged_all$Measure=="Measure1"&merged_all$Group=="C"),32:184]
+post_A<-merged_all[which(merged_all$Group=="A" & (merged_all$Measure=="Measure2"|merged_all$Measure=="Measure3")),32:184]
+post_B<-merged_all[which(merged_all$Group=="B" & (merged_all$Measure=="Measure2"|merged_all$Measure=="Measure3")),32:184]
+post_C<-merged_all[which(merged_all$Group=="C" & (merged_all$Measure=="Measure2"|merged_all$Measure=="Measure3")),32:184]
+##############
+#same groups but separate by infant sex
+pre_A_male<-merged_all[which(merged_all$Measure=="Measure1"&merged_all$Group=="A"&merged_all$CSex=="1"),32:184]
+pre_A_female<-merged_all[which(merged_all$Measure=="Measure1"&merged_all$Group=="A"&merged_all$CSex=="2"),32:184]
+pre_B_male<-merged_all[which(merged_all$Measure=="Measure1"&merged_all$Group=="B"&merged_all$CSex=="1"),32:184]
+pre_B_female<-merged_all[which(merged_all$Measure=="Measure1"&merged_all$Group=="B"&merged_all$CSex=="2"),32:184]
+pre_C_male<-merged_all[which(merged_all$Measure=="Measure1"&merged_all$Group=="C"&merged_all$CSex=="1"),32:184]
+pre_C_female<-merged_all[which(merged_all$Measure=="Measure1"&merged_all$Group=="C"&merged_all$CSex=="2"),32:184]
+post_A_male<-merged_all[which(merged_all$CSex=="1"&merged_all$Group=="A" & (merged_all$Measure=="Measure2"|merged_all$Measure=="Measure3")),32:184]
+post_B_male<-merged_all[which(merged_all$CSex=="1"&merged_all$Group=="B" & (merged_all$Measure=="Measure2"|merged_all$Measure=="Measure3")),32:184]
+post_C_male<-merged_all[which(merged_all$CSex=="1"&merged_all$Group=="C" & (merged_all$Measure=="Measure2"|merged_all$Measure=="Measure3")),32:184]
+post_A_female<-merged_all[which(merged_all$CSex=="2"&merged_all$Group=="A" & (merged_all$Measure=="Measure2"|merged_all$Measure=="Measure3")),32:184]
+post_B_female<-merged_all[which(merged_all$CSex=="2"&merged_all$Group=="B" & (merged_all$Measure=="Measure2"|merged_all$Measure=="Measure3")),32:184]
+post_C_female<-merged_all[which(merged_all$CSex=="2"&merged_all$Group=="C" & (merged_all$Measure=="Measure2"|merged_all$Measure=="Measure3")),32:184]
+#
+## generate cor matrix and p value matrix for  all samples, each of groups A, B, C
+#remove variables not going to plot
+M_ukmir_pre_A_plot<-cor(pre_A)
+p.ukmir_pre_A_plot <- cor.mtest(pre_A)
+length(which(p.ukmir_pre_A_plot<0.05))
+pdf(file="corr_plots_aprilanalysis_hc.pdf",width=15,height=15)
+corrplot(M_ukmir_pre_A_plot, type="upper", 
+         p.mat = p.ukmir_pre_A_plot,col=colorRampPalette(c("red","white","blue"))(200),addgrid.col=NA, sig.level = 0.05,insig = "blank",order = "hclust")
+text(30,30,"pre_A_all_0.05")
+dev.off()
+#repeat for other groups
+#######################3
+
+## Correlation analyses by infant sex
+#male
+M_ukmir_pre_A_male_plot<-cor(pre_A_male)
+p.ukmir_pre_A_male_plot <- cor.mtest(pre_A_male)
+length(which(p.ukmir_pre_A_male_plot<0.05))
+#repeat for other groups
+#########################
+#testing the stability of the number of significant correlations by leave out method
+pmat_pre_A_lom_sig<-list()
+for(i in 1:nrow(pre_A)) {
+  
+  c_6<-pre_A[-i,]
+  pmat_c_6<-cor.mtest(c_6)
+  pmat_pre_A_lom_sig[i]<-length(which(pmat_c_6<0.05))
+  print(i)
+  
+}
+#testing the stability of the number of significant correlations by bootstrap analyses
+#bootstrap
+pmat_pre_A_male_boot_sig<-list()
+for(i in 1:2000) {
+  row_C_6 <- sample(row(pre_A_male),nrow(pre_A_male), replace = TRUE)
+  c_6<-pre_A_male[row_C_6,]
+  pmat_c_6<-cor.mtest(c_6)
+  pmat_pre_A_male_boot_sig[i]<-length(which(pmat_c_6<0.05))
+  print(i)
+  
+}
+write.csv(pmat_pre_A_male_boot_sig,file="pre_A_male_2000_bootstrap_sign_cor.csv")
+#repeat for other groups
+hist(unlist(pmat_pre_A_lom_sig))
+#repeat for other groups
+
 
