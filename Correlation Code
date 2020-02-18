@@ -93,4 +93,47 @@ write.csv(pmat_pre_A_male_boot_sig,file="pre_A_male_2000_bootstrap_sign_cor.csv"
 hist(unlist(pmat_pre_A_lom_sig))
 #repeat for other groups
 
+##################
+#correlation plots ordered by chromosomal location
+##this is gff with all the chromosomal locations of mirna , can be searched with mimat or mirna id 
+d<-"ftp://mirbase.org/pub/mirbase/20/genomes/hsa.gff3"
+mimat_to_loc<-read.delim(d, header=F, comment.char="#")
+##after  I read the gff the attributes are all stacked in one field
+##better split them
+#source https://stackoverflow.com/questions/8464312/convert-comma-separated-entry-to-columns
+#install.packages("splitstackshape")
+library(splitstackshape)
+mimat_to_loc<-cSplit(mimat_to_loc, "V9", ";")
+View(mimat_to_loc)
+##good idea to rename the columns
+colnames(mimat_to_loc)<-c("chr loc","V2","type of trans.","start","end","v6","strand","v8","ID","Alias","Name","derives")
+#remove the repeated words as name= from the field to be able to merge the table
+#mimat_to_loc$Name <- sub("Name=", '', mimat_to_loc$Name)
+#mimat_to_loc$ID <- sub("ID=", '', mimat_to_loc$ID)
+#mimat_to_loc$Alias<- sub("Alias=", '', mimat_to_loc$Alias)
+#View(mimat_to_loc)
+#colnames(ukmir_pre)
+#mimat_to_loc$Mimat<-NULL
+#colnames(mimat_to_loc)[10]<-"Mimat"
+#miRlist<-mimat_to_loc[which(mimat_to_loc$`type of trans.`=="miRNA"),]
+#order the sheet by chromosomal location
+#read ordered file
+ukmirlist <- read.csv("C:/Users/nihal/Desktop/Ukraine analysis/ukmirlist.csv")
+#keep only the miRNAs of interest in ukmitlist
+#oredring the matrices by the chromosomal location of mirna
+pre_A_female_ordered<-pre_A_female[,unlist(as.character(ukmirlist$Mimat))]
+pre_B_female_ordered<-pre_B_female[,unlist(as.character(ukmirlist$Mimat))]
+pre_C_female_ordered<-pre_C_female[,unlist(as.character(ukmirlist$Mimat))]
+
+#generate a correlation plot color coded by the chromosome number
+
+pdf(file="correlation_by_location_april2019.pdf",width=15,height=15)
+M_pre_A_female_ordered<-cor(pre_A_female_ordered)
+p_pre_A_ordered <- cor.mtest(pre_A_female_ordered)
+#you need to change X chromosome to a number because we need a color code
+color_t0_scheme<-gsub("X","50",ukmirlist$.loc)
+corrplot(M_pre_A_female_ordered, type="upper", 
+         p.mat = p_pre_A_ordered,col=colorRampPalette(c("red","white","blue"))(200),tl.col=color_t0_scheme,addgrid.col=NA, sig.level = 0.05,insig = "blank")
+text(30,30,"loc_pre_A_female_0.05")
+#do the same with other groups
 
