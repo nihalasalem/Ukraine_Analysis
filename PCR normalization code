@@ -1,0 +1,8 @@
+miRNA_centered <- miRNA_RNA
+miRNA_centered[miRNA_centered == "Undetermined"] <- NA
+miRNA_centered <- as.data.frame(sapply(miRNA_centered, as.numeric))
+miRNA_rowmeans <- rowMeans(miRNA_centered, na.rm = TRUE)
+miRNA_centered[is.na(miRNA_centered)] <- 45
+for(i in 1:nrow(miRNA_centered)){
+  miRNA_centered[i,] <- miRNA_centered[i,] - miRNA_rowmeans[i]
+}
